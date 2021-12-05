@@ -20,4 +20,6 @@ jobs:
           node-version: "16.13.1"
       - run: npm install
       - run: npm run build
-      - run: npm run test
+      - uses: GabrielBB/xvfb-action@v1.0
+        with:
+          run: npm run test
