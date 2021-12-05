@@ -1,38 +1,44 @@
 {
-  "publisher": "hi-ogawa",
-  "name": "@hiogawa/vscode-ext-content-converter",
+  "name": "vscode-content-converter-extension",
   "version": "1.0.0-alpha.0",
+  "homepage": "https://github.com/hi-ogawa/vscode-content-converter-extension",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hi-ogawa/vscode-content-converter-extension"
+  },
+  "publisher": "hi-ogawa",
+  "displayName": "Content Converter",
   "engines": {
-    "vscode": "^1.34.0"
+    "vscode": "^1.36.0"
   },
   "main": "./build/extension.js",
   "activationEvents": [
-    "*"
+    "onCommand:extension.content-converter.run"
   ],
   "contributes": {
     "commands": [
       {
         "title": "Run content converter",
-        "command": "extension.contentconverter.run",
+        "command": "extension.content-converter.run",
         "enablement": "resourceSet"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "extension.contentconverter.run"
+          "command": "extension.content-converter.run"
         }
       ],
       "explorer/context": [
         {
-          "command": "extension.contentconverter.run"
+          "command": "extension.content-converter.run"
         }
       ]
     },
     "configuration": {
       "title": "content converter configuration",
       "properties": {
-        "contentconverter": {
+        "content-converter": {
           "type": "object",
           "default": {
             "converters": []
@@ -68,7 +74,7 @@
   "devDependencies": {
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.11.11",
-    "@types/vscode": "^1.62.0",
+    "@types/vscode": "^1.36.0",
     "@vscode/test-electron": "^1.6.2",
     "mocha": "^9.1.3",
     "prettier": "^2.5.0",

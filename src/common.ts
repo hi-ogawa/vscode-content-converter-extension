@@ -2,10 +2,10 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { URLSearchParams } from "url";
 
-export const EXTENSION_ID = "hi-ogawa.@hiogawa/vscode-ext-content-converter";
-export const CONTRIB_CONVERTER_CONFIGURATION = "contentconverter";
-export const CONTRIB_CONVERTER_COMMAND = "extension.contentconverter.run";
-export const CONVERTER_SCHEME = "contentconverter";
+export const EXTENSION_ID = "hi-ogawa.vscode-content-converter-extension";
+export const CONTRIB_CONVERTER_CONFIGURATION = "content-converter";
+export const CONTRIB_CONVERTER_COMMAND = "extension.content-converter.run";
+export const CONVERTER_SCHEME = "content-converter";
 
 // TODO: Accept `exec` options via `ConverterConfig`
 export const EXEC_MAX_BUFFER = 1 << 29; // 512MB
