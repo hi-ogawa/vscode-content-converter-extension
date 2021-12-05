@@ -3,7 +3,7 @@ import * as path from "path";
 import { URLSearchParams } from "url";
 
 export const EXTENSION_ID = "hi-ogawa.vscode-content-converter-extension";
-export const CONTRIB_CONVERTER_CONFIGURATION = "content-converter";
+export const CONTRIB_CONVERTER_CONFIGURATION = "hi-ogawa.content-converter";
 export const CONTRIB_CONVERTER_COMMAND = "extension.content-converter.run";
 export const CONVERTER_SCHEME = "content-converter";
 

@@ -110,7 +110,7 @@ function createQuickPickInteraction(
       converterConfig: { name: "", command: "" },
       continueInteraction: async (): Promise<ConverterPickItem | undefined> => {
         const result = await vscode.window.showInputBox({
-          placeHolder: "grep hello -",
+          placeHolder: "e.g. grep hello -",
         });
         if (!result) return;
         return {
