@@ -1,0 +1,23 @@
+name: CI
+"on":
+  - push
+jobs:
+  prettier:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16.13.1"
+      - run: npm install
+      - run: npm run prettier:check
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16.13.1"
+      - run: npm install
+      - run: npm run build
+      - run: npm run test
