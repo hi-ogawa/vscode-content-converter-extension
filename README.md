@@ -1,5 +1,30 @@
 # vscode content converter extension
 
+## Demo
+
+Given this configuration [`.vscode/settings.json`](./src/test/demo-workspace/.vscode/settings.json) as below:
+
+```json
+{
+  "hi-ogawa.content-converter": {
+    "converters": [
+      {
+        "name": "json prettify",
+        "command": "jq -M"
+      },
+      {
+        "name": "gzip decompress",
+        "command": "gunzip -c -"
+      }
+    ]
+  }
+}
+```
+
+here is a demo screencast:
+
+![demo.gif](./misc/demo.gif)
+
 ## Development
 
 ```sh
