@@ -1,0 +1,5 @@
+/node_modules
+/build
+/.vscode-test
+/package-lock.json
+/src/test/demo-workspace
