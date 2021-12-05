@@ -2,7 +2,7 @@
 
 ## Demo
 
-Given this configuration [`.vscode/settings.json`](./src/test/demo-workspace/.vscode/settings.json) as below:
+Given a configuration [`.vscode/settings.json`](./src/test/demo-workspace/.vscode/settings.json) as below:
 
 ```json
 {
