@@ -33,7 +33,7 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npm install -g vsce
-      - run: vsce package
+      - run: npx vsce package
       - uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
