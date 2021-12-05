@@ -29,6 +29,11 @@
           "command": "extension.content-converter.run"
         }
       ],
+      "editor/title/context": [
+        {
+          "command": "extension.content-converter.run"
+        }
+      ],
       "explorer/context": [
         {
           "command": "extension.content-converter.run"
