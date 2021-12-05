@@ -86,6 +86,47 @@ export async function showConverterUri(
   return vscode.window.showTextDocument(document);
 }
 
+type ConverterPickInteraction = () => Thenable<ConverterPickItem | undefined>;
+
+interface ConverterPickItem {
+  label: string;
+  converterConfig: ConverterConfig;
+  continueInteraction?: ConverterPickInteraction;
+}
+
+function createQuickPickInteraction(
+  converterConfigs: ConverterConfig[]
+): ConverterPickInteraction {
+  return function () {
+    // Items directory from configuration
+    const items: ConverterPickItem[] = converterConfigs.map((c) => ({
+      label: c.name,
+      converterConfig: c,
+    }));
+
+    // Item to accept custom command via `showInputBox`
+    items.push({
+      label: "(custom command)",
+      converterConfig: { name: "", command: "" },
+      continueInteraction: async (): Promise<ConverterPickItem | undefined> => {
+        const result = await vscode.window.showInputBox({
+          placeHolder: "grep hello -",
+        });
+        if (!result) return;
+        return {
+          label: "",
+          converterConfig: {
+            name: "custom command",
+            command: result,
+          },
+        };
+      },
+    });
+
+    return vscode.window.showQuickPick(items);
+  };
+}
+
 export async function converterCommandCallback(
   sourceUri?: vscode.Uri
 ): Promise<void> {
@@ -102,28 +143,26 @@ export async function converterCommandCallback(
     .getConfiguration()
     .get(CONTRIB_CONVERTER_CONFIGURATION, DEFAULT_MAIN_CONFIG);
 
-  const { converters } = mainConfig;
-  if (converters.length == 0) {
-    vscode.window.showWarningMessage(
-      "No available `converters` in configuration"
-    );
-    return;
-  }
-
   // Prompt to select converter via `QuickPick`
-  // TODO: Allow accepting command via multistep input
-  const quickPickItems = converters.map((converter) => ({
-    label: converter.name,
-    converterConfig: converter,
-  }));
-  const pickedItem = await vscode.window.showQuickPick(quickPickItems);
-  if (!pickedItem) {
-    vscode.window.showInformationMessage("Content converter cancelled");
-    return;
+  let picked: ConverterPickItem | undefined;
+  let interaction: ConverterPickInteraction = createQuickPickInteraction(
+    mainConfig.converters
+  );
+  while (true) {
+    picked = await interaction();
+    if (!picked) {
+      vscode.window.showInformationMessage("Content converter cancelled");
+      return;
+    }
+    if (picked.continueInteraction) {
+      interaction = picked.continueInteraction;
+      continue;
+    }
+    break;
   }
 
   // Open document with custom uri
-  await showConverterUri(sourceUri, pickedItem.converterConfig);
+  await showConverterUri(sourceUri, picked.converterConfig);
 }
 
 export function registerAll(): vscode.Disposable {
