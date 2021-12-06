@@ -94,33 +94,42 @@ interface ConverterPickItem {
   continueInteraction?: ConverterPickInteraction;
 }
 
+async function customCommandInteraction(): Promise<
+  ConverterPickItem | undefined
+> {
+  const result = await vscode.window.showInputBox({
+    placeHolder: "Input command (e.g. grep hello -)",
+  });
+  if (!result) return;
+  return {
+    label: "",
+    converterConfig: {
+      name: "",
+      command: result,
+    },
+  };
+}
+
 function createQuickPickInteraction(
   converterConfigs: ConverterConfig[]
 ): ConverterPickInteraction {
   return function () {
+    // When no configuration, show directly custom command input
+    if (converterConfigs.length == 0) {
+      return customCommandInteraction();
+    }
+
     // Items directory from configuration
     const items: ConverterPickItem[] = converterConfigs.map((c) => ({
       label: c.name,
       converterConfig: c,
     }));
 
-    // Item to accept custom command via `showInputBox`
+    // Add entry for custom command input
     items.push({
       label: "(custom command)",
       converterConfig: { name: "", command: "" },
-      continueInteraction: async (): Promise<ConverterPickItem | undefined> => {
-        const result = await vscode.window.showInputBox({
-          placeHolder: "e.g. grep hello -",
-        });
-        if (!result) return;
-        return {
-          label: "",
-          converterConfig: {
-            name: "custom command",
-            command: result,
-          },
-        };
-      },
+      continueInteraction: customCommandInteraction,
     });
 
     return vscode.window.showQuickPick(items);
