@@ -13,6 +13,10 @@ import {
   ConverterConfig,
 } from "./common";
 
+const QUICK_PICK_ITEM_INTERNAL = "__HIROSHI_INTERNAL__"; // Symbol doesn't seem to work
+const STATE_CUSTOM_COMMAND_HISTORY = "custom-command-history-v1";
+const STATE_CUSTOM_COMMAND_HISTORY_MAX_ENTRIES = 20;
+
 async function runCommand(
   command: string,
   stdin: Buffer
@@ -86,34 +90,105 @@ export async function showConverterUri(
   return vscode.window.showTextDocument(document);
 }
 
-type ConverterPickInteraction = () => Thenable<ConverterPickItem | undefined>;
-
-interface ConverterPickItem {
-  label: string;
-  converterConfig: ConverterConfig;
-  continueInteraction?: ConverterPickInteraction;
+// cf. https://github.com/microsoft/vscode/issues/89601#issuecomment-580133277
+async function showQuickPickInput<T extends vscode.QuickPickItem>(
+  items: T[],
+  options: { placeholder: string; valueToItem: (value: string) => T }
+): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    const ui = vscode.window.createQuickPick<T>();
+    ui.placeholder = options.placeholder;
+    ui.items = items;
+    // TODO: Debounce input change
+    ui.onDidChangeValue((value) => {
+      let newItems = Array.from(items);
+      if (value) {
+        newItems.unshift({
+          alwaysShow: true, // This helps reducing flickering of picker dropdown
+          ...options.valueToItem(value),
+        });
+      }
+      ui.items = newItems;
+    });
+    ui.onDidAccept(() => {
+      resolve(ui.selectedItems[0]);
+    });
+    ui.onDidHide(() => {
+      resolve(undefined);
+      ui.dispose();
+    });
+    ui.show();
+    return;
+  });
 }
 
-async function customCommandInteraction(): Promise<
-  ConverterPickItem | undefined
-> {
-  const result = await vscode.window.showInputBox({
-    placeHolder: "Input command (e.g. grep hello -)",
-  });
-  if (!result) return;
-  return {
-    label: "",
-    converterConfig: {
-      name: "",
-      command: result,
-    },
+type ConverterPickInteraction = () => Thenable<ConverterPickItem | undefined>;
+
+interface ConverterPickItem extends vscode.QuickPickItem {
+  label: string;
+  [QUICK_PICK_ITEM_INTERNAL]: {
+    converterConfig: ConverterConfig;
+    continueInteraction?: ConverterPickInteraction;
+  };
+}
+
+function createCustomCommandInteraction(
+  context: vscode.ExtensionContext
+): ConverterPickInteraction {
+  // TODO:
+  //   We cannot have an option to remove item from history since `IQuickPickItem.buttons` https://github.com/microsoft/vscode/blob/ff8f37a79626ede0265788192c406c95131dd7c5/src/vs/base/parts/quickinput/common/quickInput.ts#L39
+  //   used in `workbench.action.openRecent` is not available for extension.
+  //   For now, we only keep fixed number of most recently used commands.
+
+  // Get custom command history
+  const commandHistory = context.globalState.get<string[]>(
+    STATE_CUSTOM_COMMAND_HISTORY,
+    []
+  );
+
+  return async function (): Promise<ConverterPickItem | undefined> {
+    const items: ConverterPickItem[] = commandHistory.map((command) => ({
+      label: command,
+      [QUICK_PICK_ITEM_INTERNAL]: {
+        converterConfig: {
+          name: "",
+          command,
+        },
+      },
+    }));
+    const result = await showQuickPickInput(items, {
+      placeholder: "Input command (e.g. grep hello -)",
+      valueToItem: (value: string) => ({
+        label: value,
+        [QUICK_PICK_ITEM_INTERNAL]: {
+          converterConfig: {
+            name: "",
+            command: value,
+          },
+        },
+      }),
+    });
+    if (result) {
+      // Update custom command history
+      const { command } = result[QUICK_PICK_ITEM_INTERNAL].converterConfig;
+      if (!commandHistory.includes(command)) {
+        commandHistory.unshift(command);
+        await context.globalState.update(
+          STATE_CUSTOM_COMMAND_HISTORY,
+          commandHistory.slice(0, STATE_CUSTOM_COMMAND_HISTORY_MAX_ENTRIES)
+        );
+      }
+    }
+    return result;
   };
 }
 
 function createQuickPickInteraction(
-  converterConfigs: ConverterConfig[]
+  converterConfigs: ConverterConfig[],
+  context: vscode.ExtensionContext
 ): ConverterPickInteraction {
   return function () {
+    const customCommandInteraction = createCustomCommandInteraction(context);
     // When no configuration, show directly custom command input
     if (converterConfigs.length == 0) {
       return customCommandInteraction();
@@ -122,14 +197,18 @@ function createQuickPickInteraction(
     // Items directory from configuration
     const items: ConverterPickItem[] = converterConfigs.map((c) => ({
       label: c.name,
-      converterConfig: c,
+      [QUICK_PICK_ITEM_INTERNAL]: {
+        converterConfig: c,
+      },
     }));
 
     // Add entry for custom command input
     items.push({
       label: "(custom command)",
-      converterConfig: { name: "", command: "" },
-      continueInteraction: customCommandInteraction,
+      [QUICK_PICK_ITEM_INTERNAL]: {
+        converterConfig: { name: "", command: "" },
+        continueInteraction: customCommandInteraction,
+      },
     });
 
     return vscode.window.showQuickPick(items);
@@ -137,6 +216,7 @@ function createQuickPickInteraction(
 }
 
 export async function converterCommandCallback(
+  context: vscode.ExtensionContext,
   sourceUri?: vscode.Uri
 ): Promise<void> {
   // The first argument `sourceUri` is only available when the command is invoked via "editor/title" or "explorer/context" menu.
@@ -155,7 +235,8 @@ export async function converterCommandCallback(
   // Prompt to select converter via `QuickPick`
   let picked: ConverterPickItem | undefined;
   let interaction: ConverterPickInteraction = createQuickPickInteraction(
-    mainConfig.converters
+    mainConfig.converters,
+    context
   );
   while (true) {
     picked = await interaction();
@@ -163,18 +244,22 @@ export async function converterCommandCallback(
       vscode.window.showInformationMessage("Content converter cancelled");
       return;
     }
-    if (picked.continueInteraction) {
-      interaction = picked.continueInteraction;
+    const { continueInteraction } = picked[QUICK_PICK_ITEM_INTERNAL];
+    if (continueInteraction) {
+      interaction = continueInteraction;
       continue;
     }
     break;
   }
 
   // Open document with custom uri
-  await showConverterUri(sourceUri, picked.converterConfig);
+  const { converterConfig } = picked[QUICK_PICK_ITEM_INTERNAL];
+  await showConverterUri(sourceUri, converterConfig);
 }
 
-export function registerAll(): vscode.Disposable {
+export function registerAll(
+  context: vscode.ExtensionContext
+): vscode.Disposable {
   const contentProvider = new ContentProvider();
 
   const contentProviderRegistration =
@@ -185,7 +270,7 @@ export function registerAll(): vscode.Disposable {
 
   const commandRegistration = vscode.commands.registerCommand(
     CONTRIB_CONVERTER_COMMAND,
-    converterCommandCallback
+    (...args: any[]) => converterCommandCallback(context, ...args)
   );
 
   return vscode.Disposable.from(
