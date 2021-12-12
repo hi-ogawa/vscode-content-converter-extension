@@ -2,10 +2,10 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { URLSearchParams } from "url";
 
-export const EXTENSION_ID = "hi-ogawa.vscode-content-converter-extension";
-export const CONTRIB_CONVERTER_CONFIGURATION = "hi-ogawa.content-converter";
-export const CONTRIB_CONVERTER_COMMAND = "extension.content-converter.run";
-export const CONVERTER_SCHEME = "content-converter";
+export const EXT_ID = "hi-ogawa.vscode-extension-pipe-to-untitled";
+export const EXT_CONFIGURATION = "hi-ogawa.pipe-to-untitled";
+export const EXT_COMMAND = "extension.pipe-to-untitled.run";
+export const EXT_SCHEME = "pipe-to-untitled";
 
 // TODO: Accept `exec` options via `ConverterConfig`
 export const EXEC_MAX_BUFFER = 1 << 29; // 512MB
@@ -17,12 +17,12 @@ export interface ConverterConfig {
 
 export interface MainConfig {
   useUntitled: boolean;
-  converters: ConverterConfig[];
+  commands: ConverterConfig[];
 }
 
 export const DEFAULT_MAIN_CONFIG: MainConfig = {
   useUntitled: true,
-  converters: [],
+  commands: [],
 };
 
 export function getMainConfig(): MainConfig {
@@ -31,7 +31,7 @@ export function getMainConfig(): MainConfig {
     const key = key_ as keyof MainConfig;
     mainConfig[key] = vscode.workspace
       .getConfiguration()
-      .get(`${CONTRIB_CONVERTER_CONFIGURATION}.${key}`, mainConfig[key]) as any;
+      .get(`${EXT_CONFIGURATION}.${key}`, mainConfig[key]) as any;
   }
   return mainConfig;
 }
@@ -55,7 +55,7 @@ export function encodeUri(options: ProviderOptions): vscode.Uri {
     converterConfig: JSON.stringify(options.converterConfig),
   };
   return vscode.Uri.from({
-    scheme: CONVERTER_SCHEME,
+    scheme: EXT_SCHEME,
     query: toQuery(plainOptions),
     path: path.basename(options.sourceUri.path),
   });

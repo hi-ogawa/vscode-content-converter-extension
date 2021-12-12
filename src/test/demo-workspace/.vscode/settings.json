@@ -1,5 +1,5 @@
 {
-  "hi-ogawa.content-converter.converters": [
+  "hi-ogawa.pipe-to-untitled.commands": [
     {
       "name": "json prettify",
       "command": "jq -M"

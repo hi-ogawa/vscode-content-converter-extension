@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { EXTENSION_ID } from "../../common";
+import { EXT_ID } from "../../common";
 
 suite("extension.test", () => {
   test("activate", async () => {
-    await vscode.extensions.getExtension(EXTENSION_ID)!.activate();
+    await vscode.extensions.getExtension(EXT_ID)!.activate();
   });
 });
