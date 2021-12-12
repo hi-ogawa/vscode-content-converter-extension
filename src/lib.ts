@@ -2,8 +2,8 @@ import * as vscode from "vscode";
 import { exec, ExecOptions } from "child_process";
 import { Readable } from "stream";
 import {
-  CONTRIB_CONVERTER_COMMAND,
-  CONVERTER_SCHEME,
+  EXT_COMMAND,
+  EXT_SCHEME,
   encodeUri,
   decodeUri,
   EXEC_MAX_BUFFER,
@@ -281,7 +281,7 @@ export async function converterCommandCallback(
   // Prompt to select converter via `QuickPick`
   let picked: ConverterPickItem | undefined;
   let interaction: ConverterPickInteraction = createQuickPickInteraction(
-    mainConfig.converters,
+    mainConfig.commands,
     context
   );
   while (true) {
@@ -314,12 +314,12 @@ export function registerAll(
 
   const contentProviderRegistration =
     vscode.workspace.registerTextDocumentContentProvider(
-      CONVERTER_SCHEME,
+      EXT_SCHEME,
       contentProvider
     );
 
   const commandRegistration = vscode.commands.registerCommand(
-    CONTRIB_CONVERTER_COMMAND,
+    EXT_COMMAND,
     (...args: any[]) => converterCommandCallback(context, ...args)
   );
 

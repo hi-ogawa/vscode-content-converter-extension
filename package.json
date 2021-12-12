@@ -1,53 +1,54 @@
 {
-  "name": "vscode-content-converter-extension",
-  "version": "1.0.1",
-  "homepage": "https://github.com/hi-ogawa/vscode-content-converter-extension",
+  "name": "vscode-extension-pipe-to-untitled",
+  "version": "1.0.0",
+  "homepage": "https://github.com/hi-ogawa/vscode-extension-pipe-to-untitled",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hi-ogawa/vscode-content-converter-extension"
+    "url": "https://github.com/hi-ogawa/vscode-extension-pipe-to-untitled"
   },
+  "license": "MIT",
   "publisher": "hi-ogawa",
-  "displayName": "Content Converter",
+  "displayName": "Pipe To Untitled",
   "engines": {
     "vscode": "^1.36.0"
   },
   "main": "./build/extension.js",
   "activationEvents": [
-    "onCommand:extension.content-converter.run"
+    "onCommand:extension.pipe-to-untitled.run"
   ],
   "contributes": {
     "commands": [
       {
-        "title": "Run content converter",
-        "command": "extension.content-converter.run",
+        "title": "Pipe to untitled",
+        "command": "extension.pipe-to-untitled.run",
         "enablement": "resourceSet"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "extension.content-converter.run"
+          "command": "extension.pipe-to-untitled.run"
         }
       ],
       "editor/title/context": [
         {
-          "command": "extension.content-converter.run"
+          "command": "extension.pipe-to-untitled.run"
         }
       ],
       "explorer/context": [
         {
-          "command": "extension.content-converter.run"
+          "command": "extension.pipe-to-untitled.run"
         }
       ]
     },
     "configuration": {
-      "title": "content converter configuration",
+      "title": "pipe-to-untitled configuration",
       "properties": {
-        "hi-ogawa.content-converter.useUntitled": {
+        "hi-ogawa.pipe-to-untitled.useUntitled": {
           "type": "boolean",
           "default": true
         },
-        "hi-ogawa.content-converter.converters": {
+        "hi-ogawa.pipe-to-untitled.commands": {
           "type": "array",
           "items": {
             "type": "object",

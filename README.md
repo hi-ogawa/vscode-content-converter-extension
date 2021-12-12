@@ -1,4 +1,4 @@
-# vscode content converter extension
+# vscode extension pipe-to-untitled
 
 ## Demo
 
@@ -6,7 +6,7 @@ Given a configuration [`.vscode/settings.json`](./src/test/demo-workspace/.vscod
 
 ```json
 {
-  "hi-ogawa.content-converter.converters": [
+  "hi-ogawa.pipe-to-untitled.commands": [
     {
       "name": "json prettify",
       "command": "jq"
