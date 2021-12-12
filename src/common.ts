@@ -16,12 +16,25 @@ export interface ConverterConfig {
 }
 
 export interface MainConfig {
+  useUntitled: boolean;
   converters: ConverterConfig[];
 }
 
 export const DEFAULT_MAIN_CONFIG: MainConfig = {
+  useUntitled: true,
   converters: [],
 };
+
+export function getMainConfig(): MainConfig {
+  const mainConfig = { ...DEFAULT_MAIN_CONFIG };
+  for (const key_ in mainConfig) {
+    const key = key_ as keyof MainConfig;
+    mainConfig[key] = vscode.workspace
+      .getConfiguration()
+      .get(`${CONTRIB_CONVERTER_CONFIGURATION}.${key}`, mainConfig[key]) as any;
+  }
+  return mainConfig;
+}
 
 export interface ProviderOptions {
   sourceUri: vscode.Uri;

@@ -3,15 +3,14 @@ import { exec, ExecOptions } from "child_process";
 import { Readable } from "stream";
 import {
   CONTRIB_CONVERTER_COMMAND,
-  CONTRIB_CONVERTER_CONFIGURATION,
   CONVERTER_SCHEME,
-  DEFAULT_MAIN_CONFIG,
-  MainConfig,
   encodeUri,
   decodeUri,
   EXEC_MAX_BUFFER,
   ConverterConfig,
+  getMainConfig,
 } from "./common";
+import * as path from "path";
 
 const QUICK_PICK_ITEM_INTERNAL = "__HIROSHI_INTERNAL__"; // Symbol doesn't seem to work
 const STATE_CUSTOM_COMMAND_HISTORY = "custom-command-history-v1";
@@ -40,41 +39,54 @@ async function runCommand(
   });
 }
 
+async function uriToBuffer(uri: vscode.Uri): Promise<Buffer> {
+  // Read Uri as Buffer
+  let buffer: Buffer;
+  if (uri.scheme == "file") {
+    const data = await vscode.workspace.fs.readFile(uri);
+    buffer = Buffer.from(data);
+  } else {
+    // When URI is not backed by file system, read through TextDocument.getText
+    const document = await vscode.workspace.openTextDocument(uri);
+    buffer = Buffer.from(document.getText());
+  }
+  return buffer;
+}
+
+async function runConverter(
+  sourceUri: vscode.Uri,
+  converterConfig: ConverterConfig
+): Promise<string | undefined> {
+  // TODO: Show loading on status bar
+
+  const { command } = converterConfig;
+  const buffer = await uriToBuffer(sourceUri);
+
+  // Execute command
+  try {
+    const { stdout, stderr } = await runCommand(command, buffer);
+    if (stderr.length > 0) {
+      let message = ["Converter stderr:", stderr].join("\n");
+      vscode.window.showWarningMessage(message);
+    }
+    return stdout;
+  } catch (e) {
+    let message = "Converter command failed";
+    if (e instanceof Error) {
+      message += ": " + e.toString();
+    }
+    vscode.window.showErrorMessage(message);
+  }
+  return;
+}
+
 export class ContentProvider implements vscode.TextDocumentContentProvider {
   async provideTextDocumentContent(
     uri: vscode.Uri,
     _token: vscode.CancellationToken
   ): Promise<string | undefined> {
     const { sourceUri, converterConfig } = decodeUri(uri);
-    const { command } = converterConfig;
-
-    // Read Uri as Uint8Array
-    let buffer: Buffer;
-    if (sourceUri.scheme == "file") {
-      const data = await vscode.workspace.fs.readFile(sourceUri);
-      buffer = Buffer.from(data);
-    } else {
-      // When URI is not backed by file system, read through TextDocument.getText
-      const document = await vscode.workspace.openTextDocument(sourceUri);
-      buffer = Buffer.from(document.getText());
-    }
-
-    // Execute command
-    try {
-      const { stdout, stderr } = await runCommand(command, buffer);
-      if (stderr.length > 0) {
-        let message = ["Converter stderr:", stderr].join("\n");
-        vscode.window.showWarningMessage(message);
-      }
-      return stdout;
-    } catch (e) {
-      let message = "Converter command failed";
-      if (e instanceof Error) {
-        message += ": " + e.toString();
-      }
-      vscode.window.showErrorMessage(message);
-    }
-    return;
+    return runConverter(sourceUri, converterConfig);
   }
 }
 
@@ -88,6 +100,42 @@ export async function showConverterUri(
   });
   const document = await vscode.workspace.openTextDocument(uri);
   return vscode.window.showTextDocument(document);
+}
+
+function formatPath(s: string): string {
+  let { base, ...rest } = path.parse(s);
+  if (base.includes(".")) {
+    const [name, ...exts] = base.split(".");
+    base = [`${name} (pipe untitled)`, ...exts].join(".");
+  }
+  return path.format({ base, ...rest });
+}
+
+// NOTE: It seems simply using "untitled" scheme is more convenient since it's editable and savable.
+export async function showCommandContentAsUntitled(
+  sourceUri: vscode.Uri,
+  converterConfig: ConverterConfig
+): Promise<vscode.TextEditor> {
+  const content = await runConverter(sourceUri, converterConfig);
+
+  const uri = vscode.Uri.from({
+    scheme: "untitled",
+    path: formatPath(sourceUri.path), // TODO: Is it bad to have path name conflicts of "untitled" documents?
+    query: JSON.stringify({ converterConfig }), // Use query to differenciate different commands with path
+  });
+
+  const document = await vscode.workspace.openTextDocument(uri);
+
+  // TODO: Is streaming possible with this approach?
+  const editor = await vscode.window.showTextDocument(document);
+  new vscode.Range(0, 0, editor.document.lineCount, 0);
+  await editor.edit((builder) => {
+    builder.replace(
+      new vscode.Range(0, 0, document.lineCount, 0),
+      content ?? ""
+    );
+  });
+  return editor;
 }
 
 // cf. https://github.com/microsoft/vscode/issues/89601#issuecomment-580133277
@@ -171,13 +219,13 @@ function createCustomCommandInteraction(
     if (result) {
       // Update custom command history
       const { command } = result[QUICK_PICK_ITEM_INTERNAL].converterConfig;
-      if (!commandHistory.includes(command)) {
-        commandHistory.unshift(command);
-        await context.globalState.update(
-          STATE_CUSTOM_COMMAND_HISTORY,
-          commandHistory.slice(0, STATE_CUSTOM_COMMAND_HISTORY_MAX_ENTRIES)
-        );
-      }
+      const index = commandHistory.indexOf(command);
+      if (index != -1) commandHistory.splice(index, 1);
+      commandHistory.unshift(command);
+      await context.globalState.update(
+        STATE_CUSTOM_COMMAND_HISTORY,
+        commandHistory.slice(0, STATE_CUSTOM_COMMAND_HISTORY_MAX_ENTRIES)
+      );
     }
     return result;
   };
@@ -228,9 +276,7 @@ export async function converterCommandCallback(
   }
 
   // Load configuration
-  const mainConfig: MainConfig = vscode.workspace
-    .getConfiguration()
-    .get(CONTRIB_CONVERTER_CONFIGURATION, DEFAULT_MAIN_CONFIG);
+  const mainConfig = getMainConfig();
 
   // Prompt to select converter via `QuickPick`
   let picked: ConverterPickItem | undefined;
@@ -254,7 +300,11 @@ export async function converterCommandCallback(
 
   // Open document with custom uri
   const { converterConfig } = picked[QUICK_PICK_ITEM_INTERNAL];
-  await showConverterUri(sourceUri, converterConfig);
+  if (mainConfig.useUntitled) {
+    await showCommandContentAsUntitled(sourceUri, converterConfig);
+  } else {
+    await showConverterUri(sourceUri, converterConfig);
+  }
 }
 
 export function registerAll(
