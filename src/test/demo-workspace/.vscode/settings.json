@@ -1,14 +1,12 @@
 {
-  "hi-ogawa.content-converter": {
-    "converters": [
-      {
-        "name": "json prettify",
-        "command": "jq -M"
-      },
-      {
-        "name": "gzip decompress",
-        "command": "gunzip -c -"
-      }
-    ]
-  }
+  "hi-ogawa.content-converter.converters": [
+    {
+      "name": "json prettify",
+      "command": "jq -M"
+    },
+    {
+      "name": "gzip decompress",
+      "command": "gunzip -c -"
+    }
+  ]
 }

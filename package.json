@@ -43,29 +43,28 @@
     "configuration": {
       "title": "content converter configuration",
       "properties": {
-        "content-converter": {
-          "type": "object",
-          "default": {
-            "converters": []
-          },
-          "converters": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "name",
-                "command"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "command": {
-                  "type": "string"
-                }
+        "hi-ogawa.content-converter.useUntitled": {
+          "type": "boolean",
+          "default": true
+        },
+        "hi-ogawa.content-converter.converters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "command"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
               }
             }
-          }
+          },
+          "default": []
         }
       }
     }

@@ -6,18 +6,16 @@ Given a configuration [`.vscode/settings.json`](./src/test/demo-workspace/.vscod
 
 ```json
 {
-  "hi-ogawa.content-converter": {
-    "converters": [
-      {
-        "name": "json prettify",
-        "command": "jq -M"
-      },
-      {
-        "name": "gzip decompress",
-        "command": "gunzip -c -"
-      }
-    ]
-  }
+  "hi-ogawa.content-converter.converters": [
+    {
+      "name": "json prettify",
+      "command": "jq"
+    },
+    {
+      "name": "gzip decompress",
+      "command": "gunzip -c -"
+    }
+  ]
 }
 ```
 
